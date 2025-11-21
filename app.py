@@ -90,6 +90,13 @@ def clear_all():
     ws.resize(rows=1)  # keep header row only
 
 
+def save_level_to_sheet(name, level):
+    ws = get_worksheet()
+    ensure_headers(ws)
+    row = [str(uuid.uuid4()), name, int(level), datetime.utcnow().isoformat(), "level_saved"]
+    ws.append_row(row)
+
+
 # ---------- UI: LOGIN ----------
 
 def show_login():
@@ -99,8 +106,22 @@ def show_login():
         if name == "-- choose --":
             st.error("Please select your name.")
         else:
-            st.session_state["user"] = name
-            st.session_state["page"] = "student_level"
+            if name not in st.session_state.get("passwords", {}):
+                st.session_state["user"] = name
+                st.session_state["page"] = "create_password"
+            else:
+                st.session_state["user"] = name
+                st.session_state["page"] = "student_level"
+
+
+def show_create_password():
+    st.title("Create Password")
+    pwd = st.text_input("Choose a password", type="password")
+    if st.button("Save Password"):
+        if "passwords" not in st.session_state:
+            st.session_state["passwords"] = {}
+        st.session_state["passwords"][st.session_state["user"]] = pwd
+        st.session_state["page"] = "student_level"
 
 
 # ---------- UI: STUDENT LEVEL ----------
@@ -112,6 +133,7 @@ def show_student_level():
         if "student_levels" not in st.session_state:
             st.session_state["student_levels"] = {}
         st.session_state["student_levels"][st.session_state["user"]] = level
+        save_level_to_sheet(st.session_state["user"], level)
         st.session_state["page"] = "student_view"
 
 
@@ -123,12 +145,9 @@ def show_student_view():
     name = st.session_state.get("user")
     st.write(f"Logged in as **{name}**")
 
-    rating = st.slider(
-        "How confident do you feel with Python right now? (1 = struggling, 10 = very comfortable)",
-        1,
-        10,
-        5,
-    )
+    df = load_requests()
+    rating = st.session_state["student_levels"].get(name, 5)
+    st.write(f"Your Python level: **{rating}**")
 
     if st.button("Request Help"):
         add_help_request(name, rating)
@@ -188,6 +207,8 @@ def main():
 
     if "user" not in st.session_state:
         show_login()
+    elif st.session_state.get("page") == "create_password":
+        show_create_password()
     elif st.session_state.get("page") == "student_level":
         show_student_level()
     else:
