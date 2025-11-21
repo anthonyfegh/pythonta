@@ -16,6 +16,10 @@ STUDENTS = [
     "Student 4",
 ]
 
+STUDENT_LEVELS = {
+    # Placeholder for student levels
+}
+
 SHEET_NAME = "Sheet1"  # first tab in your Google Sheet
 
 
@@ -86,12 +90,38 @@ def clear_all():
     ws.resize(rows=1)  # keep header row only
 
 
+# ---------- UI: LOGIN ----------
+
+def show_login():
+    st.title("Login")
+    name = st.selectbox("Select your name", ["-- choose --"] + STUDENTS)
+    if st.button("Continue"):
+        if name == "-- choose --":
+            st.error("Please select your name.")
+        else:
+            st.session_state["user"] = name
+            st.session_state["page"] = "student_level"
+
+
+# ---------- UI: STUDENT LEVEL ----------
+
+def show_student_level():
+    st.title("Your Python Level")
+    level = st.slider("Choose your Python experience level (1-10)", 1, 10, 5)
+    if st.button("Save Level"):
+        if "student_levels" not in st.session_state:
+            st.session_state["student_levels"] = {}
+        st.session_state["student_levels"][st.session_state["user"]] = level
+        st.session_state["page"] = "student_view"
+
+
 # ---------- UI: STUDENT VIEW ----------
 
 def show_student_view():
     st.title("🙋 Request Help")
 
-    name = st.selectbox("Select your name", ["-- choose --"] + STUDENTS)
+    name = st.session_state.get("user")
+    st.write(f"Logged in as **{name}**")
 
     rating = st.slider(
         "How confident do you feel with Python right now? (1 = struggling, 10 = very comfortable)",
@@ -101,11 +131,8 @@ def show_student_view():
     )
 
     if st.button("Request Help"):
-        if name == "-- choose --":
-            st.error("Please select your name.")
-        else:
-            add_help_request(name, rating)
-            st.success("Your help request has been submitted ✅")
+        add_help_request(name, rating)
+        st.success("Your help request has been submitted ✅")
 
 
 # ---------- UI: INSTRUCTOR VIEW ----------
@@ -159,13 +186,18 @@ def show_instructor_view():
 def main():
     st.set_page_config(page_title="Class Help Queue", page_icon="🧑‍🏫", layout="centered")
 
-    st.sidebar.title("Navigation")
-    page = st.sidebar.radio("Go to", ["Student View", "Instructor View"])
-
-    if page == "Student View":
-        show_student_view()
+    if "user" not in st.session_state:
+        show_login()
+    elif st.session_state.get("page") == "student_level":
+        show_student_level()
     else:
-        show_instructor_view()
+        st.sidebar.title("Navigation")
+        page = st.sidebar.radio("Go to", ["Student View", "Instructor View"])
+
+        if page == "Student View":
+            show_student_view()
+        else:
+            show_instructor_view()
 
 
 if __name__ == "__main__":
