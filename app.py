@@ -123,13 +123,6 @@ def show_student_view():
     name = st.session_state.get("user")
     st.write(f"Logged in as **{name}**")
 
-    rating = st.slider(
-        "How confident do you feel with Python right now? (1 = struggling, 10 = very comfortable)",
-        1,
-        10,
-        5,
-    )
-
     if st.button("Request Help"):
         add_help_request(name, rating)
         st.success("Your help request has been submitted ✅")
